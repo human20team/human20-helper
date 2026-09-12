@@ -160,6 +160,38 @@ class StandaloneClientCompatibilityTest(unittest.TestCase):
                 if "://" not in link and not link.startswith("#"):
                     self.assertTrue((doc.parent / link.split("#")[0]).is_file(), link)
 
+    def test_team_github_contract_is_explicit_and_secret_safe(self):
+        skill = (ROOT / "SKILL.md").read_text()
+        reference = (ROOT / "references/team-github-access.md").read_text()
+        readme = (ROOT / "README.md").read_text()
+
+        self.assertIn("references/team-github-access.md", skill)
+        self.assertIn("A GitHub identity linked in Human20 is eligibility evidence, not agent credentials", skill)
+        self.assertIn("Never infer repository access from payment", skill)
+        for state in ("GitHub connector missing", "target repository not visible", "Repository visible, write permission"):
+            self.assertIn(state, reference)
+        self.assertIn("Do not hard-code repository names", reference)
+        self.assertIn("Human20 Environment Access", reference)
+        self.assertIn("Members: write", reference)
+        self.assertIn("не передают агенту GitHub credentials", readme)
+        self.assertNotIn("github_pat_", skill + reference + readme)
+
+    def test_team_github_contract_rejects_removed_identity_or_permission_gate(self):
+        documents = {
+            ROOT / "SKILL.md": (ROOT / "SKILL.md").read_text(),
+            ROOT / "references/team-github-access.md": (ROOT / "references/team-github-access.md").read_text(),
+            ROOT / "README.md": (ROOT / "README.md").read_text(),
+        }
+        for path, needle in (
+            (ROOT / "SKILL.md", "Never infer repository access from payment"),
+            (ROOT / "references/team-github-access.md", "Do not hard-code repository names"),
+            (ROOT / "README.md", "не передают агенту GitHub credentials"),
+        ):
+            broken = {**documents, path: documents[path].replace(needle, "removed")}
+            with self.subTest(removed=needle), patch.object(Path, "read_text", autospec=True, side_effect=lambda target: broken[target]):
+                with self.assertRaises(AssertionError):
+                    self.test_team_github_contract_is_explicit_and_secret_safe()
+
 
 if __name__ == "__main__":
     unittest.main()
