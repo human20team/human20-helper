@@ -47,6 +47,18 @@ The helper strips an accidental `Bearer ` prefix before building the Authorizati
 - For board tool arguments and bounded examples, read [references/board-api.md](references/board-api.md). Use the existing MCP URL/token, never a separate agent account or arbitrary URL/path forwarding.
 - Board writes, including rules acceptance and inbox acknowledgement, require explicit owner authorization and `--write` (Python: `allow_board_writes=True`). This local guard is not server authorization; backend membership, rules, ownership and idempotency gates remain mandatory. Verify the persisted target after every write.
 
+## Required lesson/content workflow
+
+Before reading a numbered lesson, transcript, homework or continuing lesson work:
+
+1. Resolve the intended workshop from the user's request and live workshop/catalog state. Community subscription labels and a successful `get_profile` do not prove access to every workshop. If multiple workshops remain plausible, ask which one; never silently switch cohorts.
+2. Call `get_section(section="lessons", workshop_id=RESOLVED_WORKSHOP_ID)` first. Use the returned `id`, `workshopId`, title and sequence together to identify the requested lesson; do not rely on a potentially stale `get_workshop` lesson list alone.
+3. Never construct lesson IDs from numbers. Preserve the catalog ID literally, including `jun-` versus `june-`. A different `workshop_id` does not turn an existing item ID into another workshop's lesson.
+4. Call `get_content_detail(item_id=CATALOG_ITEM_ID, workshop_id=RESOLVED_WORKSHOP_ID)` and other lesson tools with that same resolved scope when supported. Check the returned item identity before using its content.
+5. On `403 Workshop access required`, verify the item/cohort match first. Successful profile/progress calls followed by content-only 403 are not evidence of a broken token. Do not regenerate tokens or grant another workshop to hide an ID mismatch. If the matching catalog item is still denied, report that exact denial without bypassing it.
+
+Use the direct MCP client for scoped calls; legacy numbered shortcuts such as `урок 4` are not cross-workshop resolvers. Follow [lesson identity and content access](references/lesson-content-access.md) for commands and non-interchangeable ID examples. This is agent guidance, not a change to backend authorization or the legacy CLI parser.
+
 ## Board modes
 
 - `board-read`: default for board tools. Profile/rules/topic/reply/inbox reads are bounded and do not acknowledge, accept rules, reply, or launch work.
